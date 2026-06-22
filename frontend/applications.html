@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Applications</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6f9;
+padding:30px;
+}
+
+h2{
+margin-bottom:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+th,td{
+padding:12px;
+border-bottom:1px solid #ddd;
+text-align:left;
+}
+
+th{
+background:#2563eb;
+color:white;
+}
+
+button{
+padding:6px 12px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+.approve{
+background:#22c55e;
+color:white;
+}
+
+.reject{
+background:#ef4444;
+color:white;
+}
+
+.download{
+background:#3b82f6;
+color:white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>Student Applications</h2>
+
+<table>
+
+<thead>
+
+<tr>
+<th>ID</th>
+<th>Student</th>
+<th>Job</th>
+<th>Status</th>
+<th>Resume</th>
+<th>Action</th>
+</tr>
+
+</thead>
+
+<tbody id="applicationsTable">
+
+</tbody>
+
+</table>
+
+<script>
+
+const API="http://127.0.0.1:8000"
+
+function getToken(){
+return localStorage.getItem("token")
+}
+
+async function loadApplications(){
+
+const res=await fetch(API+"/admin/applications",{
+
+headers:{
+Authorization:"Bearer "+getToken()
+}
+
+})
+
+const data=await res.json()
+
+const table=document.getElementById("applicationsTable")
+
+table.innerHTML=""
+
+data.forEach(app=>{
+
+table.innerHTML+=`
+
+<tr>
+
+<td>${app.id}</td>
+
+<td>${app.student_name}</td>
+
+<td>${app.job_title}</td>
+
+<td>${app.status}</td>
+
+<td>
+<button class="download"
+onclick="downloadResume(${app.id})">
+Download
+</button>
+</td>
+
+<td>
+
+<button class="approve"
+onclick="updateStatus(${app.id},'Selected')">
+Select
+</button>
+
+<button class="reject"
+onclick="updateStatus(${app.id},'Rejected')">
+Reject
+</button>
+
+</td>
+
+</tr>
+
+`
+
+})
+
+}
+
+async function updateStatus(id,status){
+
+await fetch(API+"/admin/update-status/"+id,{
+
+method:"PUT",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+getToken()
+},
+
+body:JSON.stringify({
+status:status
+})
+
+})
+
+alert("Status Updated")
+
+loadApplications()
+
+}
+
+function downloadResume(id){
+
+window.open(API+"/admin/download-resume/"+id)
+
+}
+
+loadApplications()
+
+</script>
+
+</body>
+</html>

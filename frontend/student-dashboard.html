@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Student Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
+body{
+background:#f4f6fb;
+}
+
+/* NAVBAR */
+
+.navbar{
+background:#6a11cb;
+color:white;
+padding:15px 40px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.navbar h2{
+font-weight:600;
+}
+
+.logout{
+background:white;
+color:#6a11cb;
+border:none;
+padding:8px 15px;
+border-radius:6px;
+cursor:pointer;
+font-weight:500;
+}
+
+/* CONTAINER */
+
+.container{
+padding:40px;
+}
+
+.title{
+margin-bottom:30px;
+}
+
+/* JOB GRID */
+
+.job-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:25px;
+}
+
+/* JOB CARD */
+
+.job-card{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
+transition:0.3s;
+}
+
+.job-card:hover{
+transform:translateY(-5px);
+}
+
+.job-title{
+font-size:20px;
+font-weight:600;
+margin-bottom:10px;
+}
+
+.job-desc{
+color:#666;
+margin-bottom:10px;
+}
+
+.job-location{
+font-size:14px;
+color:#888;
+margin-bottom:15px;
+}
+
+.apply-btn{
+background:#6a11cb;
+color:white;
+border:none;
+padding:8px 18px;
+border-radius:6px;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+
+<h2>Placement Portal</h2>
+
+<button class="logout" onclick="logout()">Logout</button>
+
+</div>
+
+<div class="container">
+
+<h2 class="title">Available Jobs</h2>
+<div id="jobsContainer"></div>
+
+<div class="job-grid" id="jobs">
+
+</div>
+
+</div>
+
+<script>
+
+const API = "http://127.0.0.1:8000";
+const token = localStorage.getItem("token");
+
+// ✅ Redirect fix
+if(!token){
+    window.location.href = "/frontend/student-login.html";
+}
+
+// ---------------- LOAD JOBS ----------------
+async function loadJobs(){
+    try {
+        const res = await fetch(`${API}/student/jobs`, {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        if(!res.ok){
+            throw new Error("Failed to fetch jobs");
+        }
+
+        const jobs = await res.json();
+        const container = document.getElementById("jobs");
+
+        container.innerHTML = "";
+
+        // ✅ Empty state fix
+        if(jobs.length === 0){
+            container.innerHTML = "<p>No jobs available</p>";
+            return;
+        }
+
+        jobs.forEach(job => {
+            container.innerHTML += `
+            <div class="job-card">
+
+                <div class="job-title">${job.title}</div>
+
+                <div class="job-desc">${job.description || "No description"}</div>
+
+                <div class="job-location">${job.location || "N/A"}</div>
+
+                <button class="apply-btn" onclick="applyJob(${job.id})">
+                    Apply
+                </button>
+
+            </div>
+            `;
+        });
+
+    } catch(err){
+        console.error("Load jobs error:", err);
+        document.getElementById("jobs").innerHTML = "Error loading jobs";
+    }
+}
+
+// ---------------- APPLY JOB ----------------
+async function applyJob(jobId){
+    try {
+        const res = await fetch(`${API}/student/apply`, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                job_id: jobId
+            })
+        });
+
+        const data = await res.json();
+
+        if(!res.ok){
+            alert(data.detail || "Failed to apply");
+            return;
+        }
+
+        alert("Applied successfully ✅");
+
+    } catch(err){
+        console.error("Apply error:", err);
+        alert("Server error");
+    }
+}
+
+// ---------------- LOGOUT ----------------
+function logout(){
+    localStorage.removeItem("token");
+    window.location.href = "/frontend/index.html";
+}
+
+// INIT
+loadJobs();
+
+</script>
+
+</body>
+</html>

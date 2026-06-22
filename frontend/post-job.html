@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Post Job</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.container{
+  background:white;
+  padding:30px;
+  width:400px;
+  border-radius:10px;
+  box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+h2{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+input,textarea{
+  width:100%;
+  padding:10px;
+  margin-bottom:15px;
+  border:1px solid #ccc;
+  border-radius:6px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  background:#2563eb;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#1e40af;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Post New Job</h2>
+
+<input type="text" id="title" placeholder="Job Title">
+<textarea id="description" placeholder="Job Description"></textarea>
+<input type="text" id="location" placeholder="Location">
+<button onclick="postJob()">Post Job</button>
+
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+// Check if token exists
+const token = localStorage.getItem("token");
+if(!token){
+    alert("You must login as admin first");
+    window.location.href = "admin-login.html";
+}
+
+// Get token helper
+function getToken(){
+    return localStorage.getItem("token");
+}
+
+// Post Job function
+async function postJob(){
+
+    const title = document.getElementById("title").value.trim();
+    const description = document.getElementById("description").value.trim();
+    const location = document.getElementById("location").value.trim();
+
+    // Validate inputs
+    if(!title || !description || !location){
+        alert("All fields are required!");
+        return;
+    }
+
+    try{
+        const res = await fetch(API + "/admin/post-job", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + getToken()
+            },
+            body: JSON.stringify({ title, description, location })
+        });
+
+        const data = await res.json();
+
+        if(res.ok){
+            alert("Job Posted Successfully!");
+            // Clear form
+            document.getElementById("title").value = "";
+            document.getElementById("description").value = "";
+            document.getElementById("location").value = "";
+        } else {
+            alert("Error: " + (data.detail || "Failed to post job"));
+        }
+
+    } catch(err){
+        console.error(err);
+        alert("Server error. Please try again later.");
+    }
+
+}
+</script>
+
+</body>
+</html>

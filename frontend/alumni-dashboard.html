@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alumni Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins',sans-serif; }
+body { display:flex; height:100vh; background:#f4f6f9; }
+
+/* Sidebar */
+.sidebar {
+    width:250px;
+    background:#1e293b;
+    color:white;
+    padding:20px;
+}
+.sidebar h2 { margin-bottom:30px; }
+.sidebar ul { list-style:none; }
+.sidebar ul li {
+    padding:12px;
+    cursor:pointer;
+    border-radius:6px;
+}
+.sidebar ul li:hover { background:#334155; }
+
+/* Main */
+.main {
+    flex:1;
+    padding:30px;
+    overflow-y:auto;
+}
+
+.cards {
+    display:flex;
+    gap:20px;
+    margin-bottom:30px;
+}
+.card {
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    flex:1;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+.card h3 { margin-bottom:10px; }
+
+table {
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    border-radius:10px;
+}
+table th, table td {
+    padding:12px;
+    border-bottom:1px solid #eee;
+}
+table th { background:#f1f5f9; }
+
+button {
+    padding:6px 12px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+.apply-btn {
+    background:#2563eb;
+    color:white;
+}
+
+/* Sections */
+.section { display:none; }
+
+input, textarea {
+    width:100%;
+    padding:10px;
+    margin-bottom:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+<h2>PlacementOS</h2>
+<ul>
+<li onclick="showSection('dashboard')">Dashboard</li>
+<li onclick="showSection('jobs')">Available Jobs</li>
+<li onclick="showSection('resume')">Share Resume</li>
+<li onclick="showSection('materials')">Study Materials</li>
+<li onclick="showSection('mentorship')">Mentorship</li>
+<li onclick="logout()">Logout</li>
+</ul>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+<!-- ================= DASHBOARD ================= -->
+<!-- ONLY DASHBOARD SECTION CHANGED -->
+
+<!-- ================= DASHBOARD ================= -->
+<div id="dashboardSection" class="section">
+<h1>Alumni Dashboard</h1>
+
+<div class="cards">
+    <div class="card">
+        <h3>My Resumes</h3>
+        <p id="totalResumes">0</p>
+    </div>
+    <div class="card">
+        <h3>My Materials</h3>
+        <p id="totalMaterials">0</p>
+    </div>
+    <div class="card">
+        <h3>Mentorship Accepted</h3>
+        <p id="totalMentorships">0</p>
+    </div>
+    <div class="card">
+        <h3>My Applications</h3>
+        <p id="totalApplications">0</p>
+    </div>
+</div>
+</div>
+
+<!-- ================= JOBS ================= -->
+<div id="jobsSection" class="section">
+<h2>Available Jobs</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Title</th>
+<th>Company</th>
+<th>Location</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="jobsTable"></tbody>
+</table>
+</div>
+
+<!-- ================= RESUME ================= -->
+<div id="resumeSection" class="section">
+<h2>Upload Resume</h2>
+
+<input type="text" id="resumeTitle" placeholder="Resume Title">
+<input type="file" id="resumeFile">
+<button onclick="uploadResume()">Upload</button>
+
+<h3>My Resumes</h3>
+<ul id="resumeList"></ul>
+</div>
+
+<!-- ================= MATERIAL ================= -->
+<div id="materialSection" class="section">
+<h2>Upload Study Material</h2>
+
+<input type="text" id="materialTitle" placeholder="Topic">
+<input type="file" id="materialFile">
+<button onclick="uploadMaterial()">Upload</button>
+
+<h3>Materials</h3>
+<ul id="materialList"></ul>
+</div>
+
+<!-- ================= MENTORSHIP ================= -->
+<div id="mentorshipSection" class="section">
+<h2>Mentorship Requests</h2>
+<ul id="mentorshipList"></ul>
+</div>
+
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+const token = localStorage.getItem("token");
+
+if (!token) {
+    window.location.href = "/frontend/login.html";
+}
+
+// ---------------- SECTION SWITCH ----------------
+function showSection(section){
+    document.querySelectorAll(".section").forEach(sec => sec.style.display="none");
+
+    if(section==="dashboard"){
+        document.getElementById("dashboardSection").style.display="block";
+        loadDashboard();
+    }
+    if(section==="jobs"){
+        document.getElementById("jobsSection").style.display="block";
+        loadJobs();
+    }
+    if(section==="resume"){
+        document.getElementById("resumeSection").style.display="block";
+        loadResumes();
+    }
+    if(section==="materials"){
+        document.getElementById("materialSection").style.display="block";
+        loadMaterials();
+    }
+    if(section==="mentorship"){
+        document.getElementById("mentorshipSection").style.display="block";
+        loadMentorship();
+    }
+}
+
+// ---------------- DASHBOARD ----------------
+async function loadDashboard(){
+
+    // Resumes
+    const res1 = await fetch(API+"/alumni/resumes", {
+        headers:{ Authorization:"Bearer "+token }
+    });
+    const resumes = await res1.json();
+    document.getElementById("totalResumes").innerText = resumes.length;
+
+    // Materials
+    const res2 = await fetch(API+"/alumni/materials", {
+        headers:{ Authorization:"Bearer "+token }
+    });
+    const materials = await res2.json();
+    document.getElementById("totalMaterials").innerText = materials.length;
+
+    // Mentorship (count accepted if backend supports)
+    const res3 = await fetch(API+"/alumni/mentorship-requests", {
+        headers:{ Authorization:"Bearer "+token }
+    });
+    const mentorships = await res3.json();
+    document.getElementById("totalMentorships").innerText = mentorships.length;
+
+    // Applications (optional API — if exists)
+    try{
+        const res4 = await fetch(API+"/alumni/applications", {
+            headers:{ Authorization:"Bearer "+token }
+        });
+        const apps = await res4.json();
+        document.getElementById("totalApplications").innerText = apps.length;
+    }catch{
+        document.getElementById("totalApplications").innerText = 0;
+    }
+}
+
+// ---------------- JOBS ----------------
+async function loadJobs(){
+    const res = await fetch(API+"/alumni/jobs", {
+        headers:{ Authorization:"Bearer "+token }
+    });
+    const jobs = await res.json();
+
+    let table = document.getElementById("jobsTable");
+    table.innerHTML="";
+
+    jobs.forEach(job=>{
+        table.innerHTML+=`
+        <tr>
+            <td>${job.id}</td>
+            <td>${job.title}</td>
+            <td>${job.company || "N/A"}</td>
+            <td>${job.location}</td>
+            <td><button onclick="applyJob(${job.id})">Apply</button></td>
+        </tr>`;
+    });
+}
+
+async function applyJob(id){
+    await fetch(API+"/alumni/apply",{
+        method:"POST",
+        headers:{
+            "Authorization":"Bearer "+token,
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({job_id:id})
+    });
+    alert("Applied!");
+}
+
+// ---------------- RESUME ----------------
+async function uploadResume(){
+    let formData=new FormData();
+    formData.append("file",document.getElementById("resumeFile").files[0]);
+    formData.append("title",document.getElementById("resumeTitle").value);
+
+    await fetch(API+"/alumni/upload-resume",{
+        method:"POST",
+        headers:{ Authorization:"Bearer "+token },
+        body:formData
+    });
+
+    alert("Uploaded");
+    loadResumes();
+}
+
+async function loadResumes(){
+    const res = await fetch(API+"/alumni/resumes",{headers:{Authorization:"Bearer "+token}});
+    const data = await res.json();
+
+    let list=document.getElementById("resumeList");
+    list.innerHTML="";
+
+    data.forEach(r=>{
+        list.innerHTML+=`
+        <li>
+            ${r.title}
+            <button onclick="downloadResume(${r.id})">Download</button>
+        </li>`;
+    });
+}
+
+function downloadResume(id){
+    window.open(API+"/alumni/resume/"+id);
+}
+
+// ---------------- MATERIAL ----------------
+async function uploadMaterial(){
+    let formData=new FormData();
+    formData.append("file",document.getElementById("materialFile").files[0]);
+    formData.append("title",document.getElementById("materialTitle").value);
+
+    await fetch(API+"/alumni/upload-material",{
+        method:"POST",
+        headers:{ Authorization:"Bearer "+token },
+        body:formData
+    });
+
+    alert("Uploaded");
+    loadMaterials();
+}
+
+async function loadMaterials(){
+    const res = await fetch(API+"/alumni/materials",{headers:{Authorization:"Bearer "+token}});
+    const data = await res.json();
+
+    let list=document.getElementById("materialList");
+    list.innerHTML="";
+
+    data.forEach(m=>{
+        list.innerHTML+=`
+        <li>
+            ${m.title}
+            <button onclick="downloadMaterial(${m.id})">View</button>
+        </li>`;
+    });
+}
+
+function downloadMaterial(id){
+    window.open(API+"/alumni/material/"+id);
+}
+
+// ---------------- MENTORSHIP ----------------
+async function loadMentorship(){
+    const res = await fetch(API+"/alumni/mentorship-requests",{
+        headers:{ Authorization:"Bearer "+token }
+    });
+    const data = await res.json();
+
+    let list=document.getElementById("mentorshipList");
+    list.innerHTML="";
+
+    data.forEach(req=>{
+        list.innerHTML+=`
+        <li>
+            ${req.student_name}
+            <button onclick="acceptMentorship(${req.id})">Accept</button>
+        </li>`;
+    });
+}
+
+async function acceptMentorship(id){
+    await fetch(API+"/alumni/accept-mentorship/"+id,{
+        method:"POST",
+        headers:{ Authorization:"Bearer "+token }
+    });
+    alert("Accepted");
+    loadMentorship();
+}
+
+// ---------------- LOGOUT ----------------
+function logout(){
+    localStorage.clear();
+    window.location.href="/frontend/index.html";
+}
+
+// DEFAULT LOAD
+showSection("dashboard");
+</script>
+
+</body>
+</html>
